@@ -1,0 +1,79 @@
+clc;
+clear all;
+close all;
+
+V0_scdt=importdata("C:\Users\DELL\ScrambledV0_GroupID_1A_FreqID_60_SNR_10.000000_Foff_25.000000_Nframe_1_Nstart_1.txt");
+V0_scd1=V0_scdt.rowheaders';
+V0_scd1=str2double(V0_scd1);
+V0_scd2=[V0_scdt.data'];
+%V0_scdq=[V0_scd2{:}]; 
+V0_sc=V0_scd1+j*V0_scd2;
+V1_scdt=importdata("C:\Users\DELL\ScrambledV1_GroupID_1A_FreqID_60_SNR_10.000000_Foff_25.000000_Nframe_1_Nstart_1.txt");
+V1_scd1=V1_scdt.rowheaders';
+V1_scd1=str2double(V1_scd1);
+V1_scd2=[V1_scdt.data'];
+%V0_scdq=[V0_scd2{:}]; 
+V1_sc=V1_scd1+j*V1_scd2;
+V2_scd=importdata("C:\Users\DELL\ScrambledV2_GroupID_1A_FreqID_60_SNR_10.000000_Foff_25.000000_Nframe_1_Nstart_1.txt");
+V3_scd=importdata("C:\Users\DELL\ScrambledV3_GroupID_1A_FreqID_60_SNR_10.000000_Foff_25.000000_Nframe_1_Nstart_1.txt");
+Transmit_data=importdata("C:\Users\DELL\Tn_GroupID_1A_FreqID_60_SNR_10.000000_Foff_25.000000_Nframe_1_Nstart_1.txt");
+for i =1:length(V2_scd)
+    V2_sc(i)=V2_scd(i,1)+i*V2_scd(i,2);
+end
+for i =1:length(V3_scd)
+    V3_sc(i)=V3_scd(i,1)+i*V3_scd(i,2);
+end
+
+for i =1:length(Transmit_data)
+    T1(i)=Transmit_data(i,1)+i*Transmit_data(i,2);
+end
+ %% Interleaving
+        S = zeros(1,1024);
+        for count=1:1024
+            if (rem(count,8)==1)
+              S(count)=V0_sc(((count-1)/8)+1);
+            elseif (rem(count,8)==2)
+              S(count)=V3_sc(((count-2)/8)+1);
+            elseif (rem(count,8)==3)
+              S(count)=V1_sc(((count-3)/8)+1);
+            elseif (rem(count,8)==4)
+              S(count)=V3_sc(((count-4)/8)+1);
+            elseif (rem(count,8)==5)
+              S(count)=V2_sc(((count-5)/8)+1);
+            elseif (rem(count,8)==6)
+              S(count)=V3_sc(((count-6)/8)+1);
+            elseif (rem(count,8)==7)
+              S(count)=V2_sc(((count-7)/8)+1);
+            elseif (rem(count,8)==0)
+              S(count)=V3_sc(((count-8)/8)+1);
+            end
+        end
+
+        %% De-Interleaver
+        for cout=1:length(S)
+            if(rem(cout,8)==1)
+                V0_scp(((cout-1)/8)+1)=S(cout);
+            end
+            if(rem(cout,8)==3)
+                V1_scp(((cout-3)/8)+1)=S(cout);
+            end
+            if(rem(cout,8)==5) 
+                V2_scp(((cout-5)/8)+1)=S(cout);
+            end
+            if(rem(cout,8)==7) 
+                V2_scp(((cout-7)/8)+1)=S(cout);
+            end
+            if(rem(cout,2)==0)
+                V3_scp(((cout-2)/2)+1)=S(cout);
+            end
+        end
+      
+        %% Burst Formation
+        freq_ID=60;
+        freq_omega=(2*pi/128)*freq_ID;
+        n=0:127;
+        burst= cos(freq_omega*n)+j*sin(freq_omega*n);
+        T=[burst S];
+        subplot(211);plot(V0_sc,'r');
+        subplot(212);plot(V0_scp,'g');
+
